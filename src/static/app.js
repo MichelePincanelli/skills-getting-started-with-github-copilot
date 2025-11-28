@@ -20,14 +20,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Crea la lista dei partecipanti
+        // Crea la lista dei partecipanti senza punti elenco e con icona elimina
         let participantsSection = "";
         if (details.participants.length > 0) {
           participantsSection = `
             <div class="participants-section">
               <strong>Partecipanti:</strong>
-              <ul class="participants-list">
-                ${details.participants.map(email => `<li>${email}</li>`).join("")}
+              <ul class="participants-list no-bullets">
+                ${details.participants.map(email => `
+                  <li class="participant-item">
+                    <span>${email}</span>
+                    <button class="delete-participant" title="Rimuovi" data-activity="${name}" data-email="${email}">
+                      🗑️
+                    </button>
+                  </li>
+                `).join("")}
               </ul>
             </div>
           `;
@@ -55,6 +62,43 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+
+        // Event delegation: aggiungi un solo event listener al contenitore
+        // (solo la prima volta)
+        if (!activitiesList._deleteListenerAdded) {
+          activitiesList.addEventListener("click", async (e) => {
+            const btn = e.target.closest(".delete-participant");
+            if (btn) {
+              const activityName = btn.getAttribute("data-activity");
+              const email = btn.getAttribute("data-email");
+              if (confirm(`Vuoi davvero rimuovere ${email} da ${activityName}?`)) {
+                try {
+                  const response = await fetch(`/activities/${encodeURIComponent(activityName)}/participants/${encodeURIComponent(email)}`, {
+                    method: "DELETE"
+                  });
+                  const result = await response.json();
+                  if (response.ok) {
+                    messageDiv.textContent = result.message;
+                    messageDiv.className = "success";
+                    fetchActivities();
+                  } else {
+                    messageDiv.textContent = result.detail || "Errore nella rimozione";
+                    messageDiv.className = "error";
+                  }
+                  messageDiv.classList.remove("hidden");
+                  setTimeout(() => {
+                    messageDiv.classList.add("hidden");
+                  }, 5000);
+                } catch (error) {
+                  messageDiv.textContent = "Impossibile rimuovere il partecipante.";
+                  messageDiv.className = "error";
+                  messageDiv.classList.remove("hidden");
+                }
+              }
+            }
+          });
+          activitiesList._deleteListenerAdded = true;
+        }
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";

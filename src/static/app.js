@@ -83,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Aggiorna la lista delle attività e partecipanti
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
